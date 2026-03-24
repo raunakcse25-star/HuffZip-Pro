@@ -1,168 +1,251 @@
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 import os
+import threading
 
 from core.compressor import Compressor
 from core.decompressor import Decompressor
 
 
-class App:
+class HuffZipApp:
 
     def __init__(self, root):
-
         self.root = root
-        self.root.title("HuffZip Pro")
-        self.root.geometry("420x300")
+        self.root.title("HuffZip Pro 🚀")
+        self.root.geometry("500x380")
         self.root.resizable(False, False)
 
-        # Title
-        title = tk.Label(
-            root,
-            text="HuffZip Compression Tool",
-            font=("Arial", 18, "bold")
-        )
-        title.pack(pady=15)
+        self.selected_file = None
 
-        # Progress bar
-        self.progress = ttk.Progressbar(root, length=300)
-        self.progress.pack(pady=10)
-
-        # Buttons frame
-        frame = tk.Frame(root)
-        frame.pack(pady=10)
-
-        # Compress button
-        compress_btn = tk.Button(
-            frame,
-            text="Compress File",
-            width=18,
-            bg="#4CAF50",
-            fg="white",
-            command=self.compress
-        )
-        compress_btn.grid(row=0, column=0, padx=10, pady=5)
-
-        # Decompress button
-        decompress_btn = tk.Button(
-            frame,
-            text="Decompress File",
-            width=18,
-            bg="#2196F3",
-            fg="white",
-            command=self.decompress
-        )
-        decompress_btn.grid(row=0, column=1, padx=10, pady=5)
-
-        # Result label
-        self.result = tk.Label(
-            root,
-            text="",
-            font=("Arial", 10)
-        )
-        self.result.pack(pady=15)
-
-        # Exit button
-        exit_btn = tk.Button(
-            root,
-            text="Exit",
-            width=10,
-            command=root.quit
-        )
-        exit_btn.pack(pady=5)
+        self.setup_ui()
 
     # -------------------------
-    # Compress Function
+    # UI SETUP
+    # -------------------------
+
+    def setup_ui(self):
+
+        title = tk.Label(
+            self.root,
+            text="HuffZip Pro Compression Tool",
+            font=("Arial", 18, "bold"),
+            fg="#333"
+        )
+        title.pack(pady=10)
+
+        # File selection
+        file_frame = tk.Frame(self.root)
+        file_frame.pack(pady=5)
+
+        tk.Button(
+            file_frame,
+            text="Select File",
+            command=self.select_file,
+            bg="#555",
+            fg="white",
+            width=15
+        ).grid(row=0, column=0, padx=5)
+
+        self.file_label = tk.Label(
+            file_frame,
+            text="No file selected",
+            fg="gray"
+        )
+        self.file_label.grid(row=0, column=1)
+
+        # Progress bar
+        self.progress = ttk.Progressbar(self.root, length=350, mode="determinate")
+        self.progress.pack(pady=15)
+
+        # Buttons
+        btn_frame = tk.Frame(self.root)
+        btn_frame.pack(pady=10)
+
+        tk.Button(
+            btn_frame,
+            text="Compress",
+            width=15,
+            bg="#4CAF50",
+            fg="white",
+            command=self.start_compress_thread
+        ).grid(row=0, column=0, padx=10)
+
+        tk.Button(
+            btn_frame,
+            text="Decompress",
+            width=15,
+            bg="#2196F3",
+            fg="white",
+            command=self.start_decompress_thread
+        ).grid(row=0, column=1, padx=10)
+
+        # Result box
+        self.result = tk.Label(
+            self.root,
+            text="",
+            font=("Arial", 10),
+            justify="left"
+        )
+        self.result.pack(pady=10)
+
+        # Status bar
+        self.status = tk.Label(
+            self.root,
+            text="Ready",
+            bd=1,
+            relief="sunken",
+            anchor="w"
+        )
+        self.status.pack(side="bottom", fill="x")
+
+    # -------------------------
+    # FILE SELECTION
+    # -------------------------
+
+    def select_file(self):
+        path = filedialog.askopenfilename()
+        if path:
+            self.selected_file = path
+            size = os.path.getsize(path)
+            self.file_label.config(text=f"{os.path.basename(path)} ({size} bytes)")
+            self.status.config(text="File selected")
+
+    # -------------------------
+    # THREAD WRAPPERS
+    # -------------------------
+
+    def start_compress_thread(self):
+        if not self.selected_file:
+            messagebox.showwarning("Warning", "Please select a file first!")
+            return
+        threading.Thread(target=self.compress).start()
+
+    def start_decompress_thread(self):
+        if not self.selected_file:
+            messagebox.showwarning("Warning", "Please select a file first!")
+            return
+        threading.Thread(target=self.decompress).start()
+
+    # -------------------------
+    # PROGRESS SIMULATION
+    # -------------------------
+
+    def update_progress(self, value):
+        self.progress["value"] = value
+        self.root.update_idletasks()
+
+    # -------------------------
+    # COMPRESS
     # -------------------------
 
     def compress(self):
-
-        path = filedialog.askopenfilename()
-
-        if not path:
-            return
-
         try:
+            self.status.config(text="Compressing...")
 
-            self.progress["value"] = 20
-            self.root.update()
+            self.update_progress(10)
 
-            output = path + ".hzip"
+            output = self.selected_file + ".hzip"
 
             comp = Compressor()
 
-            comp.compress_file(path, output)
+            self.update_progress(40)
+            comp.compress_file(self.selected_file, output)
 
-            self.progress["value"] = 100
+            self.update_progress(80)
 
-            original = os.path.getsize(path)
+            original = os.path.getsize(self.selected_file)
             compressed = os.path.getsize(output)
 
             saved = original - compressed
+            ratio = compressed / original if original != 0 else 0
+            percent = (saved / original * 100) if original != 0 else 0
 
-            ratio = compressed / original
+            feedback = self.get_feedback(percent)
+
+            self.update_progress(100)
 
             self.result.config(
                 text=f"""
-Compression Complete
+✅ Compression Complete
 
-Original Size : {original} bytes
-Compressed Size : {compressed} bytes
-Saved : {saved} bytes
-Ratio : {ratio:.2f}
+📁 Original : {original} bytes
+📦 Compressed : {compressed} bytes
+💾 Saved : {saved} bytes
+📊 Ratio : {ratio:.2f}
+🔥 Efficiency : {percent:.2f}%
+
+👉 {feedback}
 """
             )
 
-            messagebox.showinfo("Success", "File compressed successfully")
+            self.status.config(text="Compression successful")
+            messagebox.showinfo("Success", "File compressed successfully!")
 
         except Exception as e:
-
             messagebox.showerror("Error", str(e))
+            self.status.config(text="Error occurred")
 
         finally:
-
-            self.progress["value"] = 0
+            self.update_progress(0)
 
     # -------------------------
-    # Decompress Function
+    # DECOMPRESS
     # -------------------------
 
     def decompress(self):
-
-        path = filedialog.askopenfilename(
-            filetypes=[("HuffZip Archive", "*.hzip")]
-        )
-
-        if not path:
-            return
-
         try:
+            self.status.config(text="Decompressing...")
 
-            self.progress["value"] = 30
-            self.root.update()
+            self.update_progress(20)
 
-            output = path.replace(".hzip", "_decompressed.txt")
+            output = self.selected_file.replace(".hzip", "_decompressed.txt")
 
             decomp = Decompressor()
 
-            decomp.decompress_file(path, output)
+            self.update_progress(50)
+            decomp.decompress_file(self.selected_file, output)
 
-            self.progress["value"] = 100
+            self.update_progress(100)
 
             self.result.config(
                 text=f"""
-Decompression Complete
+✅ Decompression Complete
 
-Output File:
+📄 Output File:
 {output}
 """
             )
 
-            messagebox.showinfo("Success", "File decompressed successfully")
+            self.status.config(text="Decompression successful")
+            messagebox.showinfo("Success", "File decompressed successfully!")
 
         except Exception as e:
-
             messagebox.showerror("Error", str(e))
+            self.status.config(text="Error occurred")
 
         finally:
+            self.update_progress(0)
 
-            self.progress["value"] = 0
+    # -------------------------
+    # SMART FEEDBACK
+    # -------------------------
+
+    def get_feedback(self, percent):
+        if percent > 60:
+            return "Excellent compression 🚀"
+        elif percent > 30:
+            return "Good compression 👍"
+        elif percent > 10:
+            return "Average compression ⚖️"
+        else:
+            return "Low compression ⚠️ Try larger files"
+
+
+# -------------------------
+# MAIN
+# -------------------------
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = HuffZipApp(root)
+    root.mainloop()
