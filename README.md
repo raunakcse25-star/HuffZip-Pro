@@ -1,3 +1,4 @@
+![image alt](https://github.com/raunakcse25-star/HuffZip-Pro/blob/98a5043336f85cba220271f5b33d9045b832bff5/Gemini_Generated_Image_z63p0rz63p0rz63p.png)
 # HuffZip Pro
 
 HuffZip Pro is a file compression tool built using the Huffman Coding algorithm.  
