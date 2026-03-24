@@ -1,11 +1,11 @@
 import tkinter as tk
-from app import App
+from app import HuffZipApp
 
 def main():
 
     root = tk.Tk()
 
-    App(root)
+    HuffZipApp(root)
 
     root.mainloop()
 
