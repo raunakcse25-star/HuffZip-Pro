@@ -35,9 +35,6 @@ cli.py
 
 ## How to Run
 
-Clone the repository:
-
-git clone https://github.com/YOUR_USERNAME/HuffZip-Pro.git
 
 Run the program:
 
